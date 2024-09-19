@@ -1,0 +1,70 @@
+---
+- name: Create working suite
+  block:
+    - name: Create Folders
+      become: false
+      ansible.builtin.file:
+        path: ~/Documents/{{ item }}
+        state: directory
+        mode: "0774"
+      loop:
+        - Tools
+        - VPNs
+        - Working
+        - Tools/Privilege_Escalation
+        - Tools/GeoLite2
+    - name: Clone repos
+      ansible.builtin.shell: cd /home/kali/Documents/Tools/; /usr/bin/git clone {{ item.repo }}
+      loop:
+        - {repo: "https://github.com/volatilityfoundation/volatility.git", location: "volatility2"}
+        - {repo: "https://github.com/volatilityfoundation/volatility3", location: "volatility3"}
+        - {repo: "https://github.com/BlackArch/wordlistctl", location: "wordlistctl"}
+        - {repo: "https://github.com/samratashok/nishang", location: "nishang"}
+        - {repo: "https://github.com/pentestmonkey/php-reverse-shell", location: "reverse-shell-php"}
+        - {repo: "https://github.com/GuidoBartoli/sherloq", location: "sherloq"}
+    - name: Create Chisel
+      become: false
+      ansible.builtin.copy:
+        src: files/chisel
+        dest: ~/Documents/Tools/
+        mode: "0774"
+    - name: Downloading Postman
+      ansible.builtin.get_url:
+        url: https://dl.pstmn.io/download/latest/linux_64
+        dest: /tmp/postman.tar.gz
+        mode: 444
+    - name: Extract postman
+      ansible.builtin.unarchive:
+        src: /tmp/postman.tar.gz
+        dest: ~/Documents/Tools/
+    - name: IDA-Free
+      ansible.builtin.get_url:
+        url: https://out7.hex-rays.com/files/idafree84_linux.run
+        dest: /tmp/idafree.run
+        mode: 444
+    - name: Copy IDA to Tools
+      become: false
+      ansible.builtin.copy:
+        src: /tmp/idafree.run
+        dest: ~/Documents/Tools/
+        mode: "0774"
+    - name: Scripts
+      ansible.builtin.shell: cp {{ playbook_dir }}/files/Privileges/{{ item }} ~/Documents/Tools/Privilege_Escalation
+      loop:
+        - LinEnum.sh
+        - linpeas.sh
+        - pspy64
+        - winPEAS.ps1
+    - name: Download go
+      ansible.builtin.get_url:
+        url: https://golang.org/dl/go1.23.0.linux-amd64.tar.gz
+        dest: /tmp/go.tar.gz
+        mode: 444
+    - name: Install go
+      become: true
+      become_user: root
+      ansible.builtin.shell: ' tar -C /usr/local -xzf /tmp/go.tar.gz'
+    - name: GeoLite2
+      ansible.posix.synchronize:
+        src: '{{ playbook_dir }}/files/GeoLite2'
+        dest: ~/Documents/Tools/GeoLite2
